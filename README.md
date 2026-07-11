@@ -14,46 +14,47 @@
 
 - [Overview](#overview)
 - [Dataset](#dataset)
-- [Project Structure](#project-structure)
+- [Repository Structure](#repository-structure)
 - [Methodology](#methodology)
+- [Models](#models)
 - [Results](#results)
-- [Requirements](#requirements)
-- [Setup & Usage](#setup--usage)
-- [Notebooks](#notebooks)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Future Work](#future-work)
 
 ---
 
 ## Overview
 
-This project frames music genre tagging as a **multiclass supervised classification problem**: given the numerical audio features of a Spotify track, predict which of **114 genres** it belongs to.
+This project addresses music genre classification as a **multiclass supervised classification** problem. Given the numerical audio features of a Spotify track, the objective is to predict its genre from a set of 114 balanced classes.
 
-The task is considerably more challenging than binary classification — with 114 balanced classes, a random classifier achieves approximately **0.88% accuracy**. The project benchmarks four scikit-learn classifiers against this baseline, evaluates them on a held-out test set, and analyses per-genre performance through precision, recall, F1-score, and a confusion matrix.
+The dataset consists of 114,000 tracks sourced from the [Spotify Tracks Genre Dataset](https://www.kaggle.com/datasets/thedevastator/spotify-tracks-genre-dataset) (Kaggle). Four scikit-learn classifiers are trained and compared on a stratified held-out test set. Performance is evaluated using accuracy, precision, recall, F1-score, and a confusion matrix.
 
-**Key result:** Random Forest achieved **29.18% accuracy** on the test set — the best-performing model, outperforming all other evaluated classifiers.
+**Best result:** Random Forest — **29.18% accuracy** on the test set.
 
 ---
 
 ## Dataset
 
-**Source:** [Spotify Tracks Genre Dataset](https://www.kaggle.com/datasets/thedevastator/spotify-tracks-genre-dataset) (Kaggle)
+**Source:** [Spotify Tracks Genre Dataset](https://www.kaggle.com/datasets/thedevastator/spotify-tracks-genre-dataset) — Kaggle
 
 | Property | Value |
 |---|---|
 | Total tracks | 114,000 |
-| Columns | 21 |
-| Genre classes | 114 (balanced, ~1,000 tracks per genre) |
+| Total columns | 21 |
+| Target classes | 114 genres, balanced (~1,000 tracks per class) |
 | Missing values | None |
 | Duplicate rows | None |
 
-### Input features (X) — 14 numerical audio variables
+### Input features — 14 numerical audio variables
 
 | Feature | Description |
 |---|---|
 | `popularity` | Track popularity score (0–100) |
-| `duration_ms` | Track duration in milliseconds |
+| `duration_ms` | Duration in milliseconds |
 | `danceability` | Suitability for dancing (0.0–1.0) |
 | `energy` | Perceptual intensity and activity (0.0–1.0) |
-| `key` | Estimated overall key (0–11) |
+| `key` | Estimated musical key (0–11) |
 | `loudness` | Overall loudness in dB |
 | `mode` | Modality: major (1) or minor (0) |
 | `speechiness` | Presence of spoken words (0.0–1.0) |
@@ -64,9 +65,9 @@ The task is considerably more challenging than binary classification — with 11
 | `tempo` | Estimated tempo in BPM |
 | `time_signature` | Estimated beats per bar |
 
-**Target variable (Y):** `track_genre` — one of 114 mutually exclusive genre labels.
+**Target variable:** `track_genre` — one of 114 mutually exclusive genre labels.
 
-Text columns (`track_name`, `artists`, `album_name`, `track_id`) were **excluded** from model input, as they do not represent audio signal and would not generalise to unseen tracks.
+Text columns (`track_name`, `artists`, `album_name`, `track_id`) were excluded from model input, as they do not represent audio signal and would not generalise to unseen tracks.
 
 ### Downloading the dataset
 
@@ -89,24 +90,24 @@ Download the CSV from Kaggle and place it at:
 data/spotify_genre_classification.csv
 ```
 
-If this local file exists, the notebooks use it directly; otherwise they fall back to `kagglehub`.
+If this local file is present, the notebooks use it directly; otherwise they fall back to `kagglehub`.
 
 ---
 
-## Project Structure
+## Repository Structure
 
 ```
 spotify-genre-classification/
 │
-├── data/                          # Local dataset (optional, not tracked by git)
+├── data/                        # Local dataset directory (not tracked by git)
 │   └── spotify_genre_classification.csv
 │
 ├── notebooks/
-│   ├── 01_eda.ipynb               # Exploratory Data Analysis
-│   └── 02_modeling.ipynb          # Preprocessing, training, and evaluation
+│   ├── 01_eda.ipynb             # Exploratory Data Analysis
+│   └── 02_modeling.ipynb        # Preprocessing, model training, and evaluation
 │
 ├── presentation/
-│   └── Spotify_Genre_Classification.pptx   # 10-slide project presentation
+│   └── Spotify_Genre_Classification.pptx  # 10-slide project presentation
 │
 ├── requirements.txt
 └── README.md
@@ -116,77 +117,108 @@ spotify-genre-classification/
 
 ## Methodology
 
-### 1 · Exploratory Data Analysis
+### 1. Exploratory Data Analysis
 
-- Verified dataset integrity: shape, types, missing values, and duplicate rows
-- Confirmed balanced class distribution (~1,000 tracks per genre)
-- Identified the 14 numerical features to use as input
-- Examined inter-genre feature separability through distribution plots
+The EDA notebook verifies dataset integrity (shape, data types, missing values, duplicate rows) and examines the distribution of all 14 numerical features across the top genres. The class distribution was confirmed to be balanced, with approximately 1,000 tracks per genre.
 
-**Key finding:** Some genres exhibit visually distinguishable feature profiles (e.g., acoustic vs. electronic tracks), but a substantial number of genre pairs overlap considerably in feature space. This motivated the comparison of both linear and non-linear classifiers.
+A key observation from the EDA is that while some genres exhibit visually distinguishable feature profiles — for example, acoustic tracks tend toward high acousticness and low energy, whereas electronic genres show the inverse — a substantial proportion of genre pairs overlap considerably in feature space. This finding motivated the evaluation of both linear and non-linear classifiers.
 
-### 2 · Preprocessing Pipeline
+### 2. Stratified Subsampling
 
-| Step | Detail |
-|---|---|
-| **Stratified subsampling** | 20,000 tracks drawn from 114,000, preserving genre proportions |
-| **Train / test split** | 75% train (15,000) / 25% test (5,000), stratified by genre |
-| **Feature scaling** | `StandardScaler` applied to Logistic Regression and KNN — both depend on feature magnitude (gradient optimisation and Euclidean distance respectively). Random Forest is scale-invariant and was trained on unscaled data. |
+To keep training computationally manageable, a stratified sample of **20,000 tracks** was drawn from the full 114,000-track dataset. Stratified sampling preserves the original genre proportions, ensuring no class is over- or under-represented in the working subset.
 
-All steps use a fixed `random_state` to ensure reproducibility.
+### 3. Train / Test Split
 
-### 3 · Feature Selection
+The sample was partitioned into a **training set** (75%, 15,000 tracks) and a **test set** (25%, 5,000 tracks), using stratified splitting to maintain class balance in both partitions. A fixed `random_state` was applied throughout to ensure reproducibility.
 
-All 14 numerical audio features were used directly — no dimensionality reduction was applied. With only 14 input variables the feature space is already low-dimensional, and Random Forest is additionally robust to less-informative features through its internal split criterion.
+### 4. Feature Scaling
 
-### 4 · Model Selection
+`StandardScaler` was applied to the features used by Logistic Regression and K-Nearest Neighbors:
 
-Four classifiers were evaluated, chosen to cover different learning paradigms:
+- **Logistic Regression** relies on gradient-based optimisation, which is sensitive to differences in feature magnitude.
+- **KNN** computes Euclidean distances, which are distorted when features operate on different scales.
 
-| Model | Paradigm | Why selected |
+Random Forest is scale-invariant — its splits are based on rank thresholds rather than absolute values — and was therefore trained on unscaled data.
+
+### 5. Model Training and Evaluation
+
+All four classifiers were trained on the same training set and evaluated on the same held-out test set. Evaluation metrics include overall accuracy, per-class precision, recall and F1-score, and a confusion matrix computed over the 10 most frequent genres.
+
+---
+
+## Models
+
+Four classifiers were selected to cover different learning paradigms:
+
+| Model | Paradigm | Rationale |
 |---|---|---|
-| `DummyClassifier` | Baseline | Establishes the performance lower bound (~0.88% for 114 balanced classes) |
-| `LogisticRegression` | Linear | Tests whether a linear decision boundary is sufficient to separate genres |
-| `KNeighborsClassifier (k=5)` | Distance-based | Captures local similarity in the audio feature space |
-| `RandomForestClassifier (n=100)` | Ensemble | Captures non-linear relationships; expected to outperform linear models given the overlapping class structure found during EDA |
+| `DummyClassifier` | Baseline | Predicts the most frequent class regardless of input. Establishes the performance lower bound for the task (~0.88% for 114 balanced classes). |
+| `LogisticRegression` | Linear | Simple linear classifier. Included to assess whether a linear decision boundary is sufficient to separate genres in the 14-dimensional feature space. |
+| `KNeighborsClassifier (k=5)` | Distance-based | Non-parametric classifier that assigns labels based on nearest neighbours. Captures local similarity in the audio feature space. |
+| `RandomForestClassifier (n_estimators=100)` | Ensemble | Ensemble of decision trees capable of learning non-linear relationships between features. Expected to outperform linear models given the complex, overlapping class structure observed during EDA. |
 
 ---
 
 ## Results
 
-### Model comparison (test set accuracy)
+### Model comparison — test set accuracy
 
 | Model | Accuracy |
 |---|---|
 | Dummy Classifier (baseline) | 0.88% |
-| K-Nearest Neighbors (k=5) | 14.42% |
+| K-Nearest Neighbors (k = 5) | 14.42% |
 | Logistic Regression | 18.80% |
 | **Random Forest (100 trees)** | **29.18%** ✓ |
 
-Random Forest achieved the highest accuracy (29.18%), outperforming all other evaluated classifiers.
+> **Optional:** add the accuracy bar chart here.
+> ```markdown
+> ![Model Accuracy Comparison](presentation/accuracy_chart.png)
+> ```
 
-### Per-genre performance (selected examples)
+### Per-class performance — selected examples
 
-| Genre | Precision | Recall | F1-score | Notes |
-|---|---|---|---|---|
-| comedy | 0.89 | 0.75 | **0.81** | Acoustically distinctive |
-| grindcore | 0.75 | 0.86 | **0.80** | Acoustically distinctive |
-| honky-tonk | 0.78 | 0.70 | **0.74** | Acoustically distinctive |
-| emo | 0.00 | 0.00 | **0.00** | Overlaps with adjacent styles |
-| electronic | 0.06 | 0.02 | **0.03** | Overlaps with adjacent styles |
+| Genre | Precision | Recall | F1-score |
+|---|---|---|---|
+| comedy | 0.89 | 0.75 | **0.81** |
+| grindcore | 0.75 | 0.86 | **0.80** |
+| honky-tonk | 0.78 | 0.70 | **0.74** |
+| emo | 0.00 | 0.00 | **0.00** |
+| electronic | 0.06 | 0.02 | **0.03** |
 
 **Macro-average:** Precision 0.28 · Recall 0.29 · F1 0.28  
 **Weighted average:** F1 ≈ 0.28
 
+> **Optional:** add the confusion matrix here.
+> ```markdown
+> ![Confusion Matrix](presentation/confusion_matrix.png)
+> ```
+
 ### Interpretation
 
-Although 29.18% may appear low in absolute terms, the task involves distinguishing among **114 balanced classes** — a considerably more demanding setting than conventional binary classification. All trained classifiers substantially outperform random prediction.
+Random Forest achieved the highest accuracy (29.18%), outperforming all other evaluated classifiers. Its advantage over Logistic Regression (18.80%) and KNN (14.42%) is consistent with the overlapping class structure identified during EDA: the relationship between audio features and genre labels is non-linear, favouring an ensemble approach over a linear decision boundary.
 
-Classification errors are concentrated within acoustically similar genre families (e.g., house / deep-house / techno), rather than randomly distributed across all classes. This indicates that the performance ceiling is partly determined by the inherent acoustic similarity among subgenres, and is not solely a consequence of model limitations.
+Although 29.18% may appear modest, the task involves distinguishing among **114 balanced classes** — a considerably more demanding setting than binary classification, where chance-level performance is approximately 0.88%. All trained models substantially outperform random prediction.
+
+Per-class analysis reveals that genres with acoustically distinctive profiles — such as comedy, grindcore, and honky-tonk — are classified with substantially higher F1-scores. Genres that overlap with adjacent styles in feature space (e.g., emo, electronic) produce lower scores. The confusion matrix confirms that misclassifications are concentrated within acoustically similar genre families rather than randomly distributed, suggesting that the primary performance ceiling is the inherent similarity among subgenres.
 
 ---
 
-## Requirements
+## Installation
+
+**1. Clone the repository**
+
+```bash
+git clone https://github.com/[username]/spotify-genre-classification.git
+cd spotify-genre-classification
+```
+
+**2. Install dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+**Dependencies:**
 
 ```
 pandas
@@ -198,51 +230,34 @@ kagglehub
 jupyter
 ```
 
-Install all dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
 ---
 
-## Setup & Usage
+## Usage
 
-**1. Clone the repository**
-
-```bash
-git https://github.com/Claffyhill/spotify-genre-ml.git
-cd spotify-genre-classification
-```
-
-**2. Install dependencies**
-
-```bash
-pip install -r requirements.txt
-```
-
-**3. Run the notebooks in order**
+Launch Jupyter and execute the notebooks **in order**:
 
 ```bash
 jupyter notebook
 ```
 
-Open and run:
+| Step | Notebook | Description |
+|---|---|---|
+| 1 | [`notebooks/01_eda.ipynb`](notebooks/01_eda.ipynb) | Data integrity checks, class distribution, feature distributions, separability analysis |
+| 2 | [`notebooks/02_modeling.ipynb`](notebooks/02_modeling.ipynb) | Stratified subsampling, train/test split, feature scaling, model training, accuracy comparison, classification report, confusion matrix |
 
-1. `notebooks/01_eda.ipynb` — Exploratory Data Analysis
-2. `notebooks/02_modeling.ipynb` — Preprocessing, model training, and evaluation
-
-The dataset is downloaded automatically on first run. Alternatively, place the CSV at `data/spotify_genre_classification.csv` before running.
-
----
-
-## Notebooks
-
-| Notebook | Description |
-|---|---|
-| [`01_eda.ipynb`](notebooks/01_eda.ipynb) | Data integrity checks, class distribution, feature distributions across genres, separability analysis |
-| [`02_modeling.ipynb`](notebooks/02_modeling.ipynb) | Stratified sampling, train/test split, feature scaling, model training, accuracy comparison, classification report, confusion matrix |
+The dataset is downloaded automatically on first run via `kagglehub`. To use a local copy instead, place the CSV at `data/spotify_genre_classification.csv` before running the notebooks.
 
 ---
 
-*University Machine Learning Project · [Machine Learning] · [2025/2026]*
+## Future Work
+
+The following extensions could be explored in subsequent iterations of this project:
+
+- **Hyperparameter tuning:** systematic search over Random Forest parameters (`n_estimators`, `max_depth`, `min_samples_leaf`) to improve classification performance.
+- **Feature engineering:** construction of interaction features or the incorporation of aggregated metadata to enrich the audio-based representation.
+- **Additional ensemble methods:** evaluation of Gradient Boosting variants on the same train/test partition.
+- **Neural network classifiers:** exploration of shallow feed-forward architectures to assess whether increased model capacity improves performance on the harder-to-classify genres.
+
+---
+
+*University Machine Learning Project · [Course Name] · [Date]*
