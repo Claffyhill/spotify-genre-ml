@@ -199,8 +199,8 @@ Per-class analysis reveals that genres with acoustically distinctive profiles â€
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/[username]/spotify-genre-classification.git
-cd spotify-genre-classification
+git clone https://github.com/Claffyhill/spotify-genre-ml.git
+cd spotify-genre-ml
 ```
 
 **2. Install dependencies**
