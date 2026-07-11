@@ -452,7 +452,7 @@ Per-class analysis reveals that genres with acoustically distinctive profiles 鈥
 
 ```bash
 git clone https://github.com/Claffyhill/spotify-genre-ml.git
-cd spotify-genre-classification
+cd spotify-genre-classification-ml
 ```
 
 **2. Install dependencies**
@@ -497,10 +497,10 @@ The dataset is downloaded automatically on first run via `kagglehub`. To use a l
 The following extensions could be explored in subsequent iterations of this project:
 
 - **Hyperparameter tuning:** systematic search over Random Forest parameters (`n_estimators`, `max_depth`, `min_samples_leaf`) to improve classification performance.
-- **Feature engineering:** construction of interaction features or the incorporation of aggregated metadata to enrich the audio-based representation.
+- **Feature engineering:** investigate additional audio descriptors or engineered features to improve class separability.
 - **Additional ensemble methods:** evaluation of Gradient Boosting variants on the same train/test partition.
 - **Neural network classifiers:** exploration of shallow feed-forward architectures to assess whether increased model capacity improves performance on the harder-to-classify genres.
 
 ---
 
-*University Machine Learning Project 路 [Machine Learning] 路 [2025/2026]*
+*University Machine Learning Project 路 Machine Learning 路 Academic Year 2025/2026*
